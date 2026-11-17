@@ -1,0 +1,74 @@
+
+import numpy as np
+
+D = 1000.0
+P0 = -30.0
+n = 3.5
+sigma = 4.0
+speed = 10.0
+
+def simulate(h, rng):
+    cell = 0
+    handoff = 0
+    pingpong = 0
+    last_time = -99
+    last_cell = None
+    position = None
+
+    for t in np.arange(0, D / speed, 0.5):
+
+        x = speed * t
+
+        d1 = max(x, 1)
+        d2 = max(abs(x - D), 1)
+
+        p1 = P0 - 10 * n * np.log10(d1) + rng.normal(0, sigma)
+        p2 = P0 - 10 * n * np.log10(d2) + rng.normal(0, sigma)
+
+        powers = [p1, p2]
+        new_cell = 1 - cell
+
+        if powers[new_cell] > powers[cell] + h:
+
+            if last_cell == new_cell and t - last_time < 10:
+                pingpong += 1
+
+            handoff += 1
+            last_cell = cell
+            last_time = t
+            cell = new_cell
+
+            if position is None:
+                position = x
+
+    return handoff, pingpong, position
+
+
+def main():
+
+    rng = np.random.default_rng(1)
+    repetitions = 300
+
+    print("HANDOFF SIMULATION WITH HYSTERESIS")
+    print("Runs per value:", repetitions)
+    print("Speed:", speed, "m/s")
+    print("Shadow sigma:", sigma, "dB")
+
+    print(f"\n{'H(dB)':>7} {'Mean handoffs':>16} {'Mean ping-pong':>17} {'First handoff(m)':>19}")
+
+    for h in [0, 2, 4, 6, 8, 10]:
+
+        data = [simulate(h, rng) for _ in range(repetitions)]
+
+        avg_handoff = np.mean([x[0] for x in data])
+        avg_pingpong = np.mean([x[1] for x in data])
+
+        positions = [x[2] for x in data if x[2] is not None]
+
+        avg_position = np.mean(positions) if positions else float("nan")
+
+        print(f"{h:7.1f} {avg_handoff:16.2f} {avg_pingpong:17.2f} {avg_position:19.1f}")
+
+
+if __name__ == "__main__":
+    main()
