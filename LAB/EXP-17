@@ -1,0 +1,54 @@
+
+import math
+
+def cluster_sizes():
+    sizes = []
+
+    for i in range(5):
+        for j in range(5):
+            N = i*i + i*j + j*j
+
+            if N > 0 and N not in sizes:
+                sizes.append(N)
+
+    return sorted(sizes)[:10]
+
+
+def calculate(N, S, M, n):
+    channels = S // N
+    reuse = math.sqrt(3 * N)
+    si = 10 * math.log10((reuse ** n) / 6)
+    capacity = M * channels
+
+    return channels, capacity, reuse, si
+
+
+S = 336
+M = 21
+n = 4.0
+required = 18.0
+
+print("S =", S, "channels")
+print("M =", M, "cells")
+print("Path loss exponent =", n)
+print("Required S/I =", required, "dB")
+
+print("\nN    D/R   ch/cell   Capacity   S/I(dB)   Meets Requirement?")
+
+best = None
+
+for N in cluster_sizes():
+
+    k, capacity, q, si = calculate(N, S, M, n)
+
+    if si >= required:
+        result = "yes"
+
+        if best is None:
+            best = N
+    else:
+        result = "no"
+
+    print(f"{N:2d}  {q:6.2f}  {k:6d}  {capacity:8d}  {si:8.2f}  {result}")
+
+print("\nSmallest cluster size that meets the S/I requirement: N =", best)
