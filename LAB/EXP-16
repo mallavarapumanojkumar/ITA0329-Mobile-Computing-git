@@ -1,0 +1,60 @@
+
+import math
+
+def fspl_db(distance, frequency):
+    return 32.44 + 20 * math.log10(distance) + 20 * math.log10(frequency)
+
+def received_power(pt, gt, gr, distance, frequency):
+    return pt + gt + gr - fspl_db(distance, frequency)
+
+frequency = 2400
+pt = 20
+gt = 2
+gr = 2
+sensitivity = -90
+
+print("Frequency:", frequency, "MHz")
+print("Transmit Power:", pt, "dBm")
+
+print("\nDistance(km)  FSPL(dB)  Power(dBm)  Power(W)  Link Status")
+
+distances = [0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10]
+
+for distance in distances:
+    loss = fspl_db(distance, frequency)
+    power = received_power(pt, gt, gr, distance, frequency)
+    watts = 10 ** ((power - 30) / 10)
+
+    if power >= sensitivity:
+        status = "OK"
+    else:
+        status = "FAIL"
+
+    print(distance, round(loss, 2), round(power, 2),
+          format(watts, ".3e"), status)
+
+allowed_loss = pt + gt + gr - sensitivity
+
+max_distance = 10 ** (
+    (allowed_loss - 32.44 - 20 * math.log10(frequency)) / 20
+)
+
+print("\nMaximum Communication Distance:",
+      round(max_distance, 2), "km")
+
+difference = fspl_db(2, frequency) - fspl_db(1, frequency)
+
+print("Doubling Distance Adds:", round(difference, 2), "dB")
+
+print("\nEffect of Carrier Frequency")
+
+frequencies = [900, 1800, 2400, 3500]
+
+for freq in frequencies:
+    loss = fspl_db(1, freq)
+    power = received_power(pt, gt, gr, 1, freq)
+
+    print(freq, "MHz",
+          "FSPL =", round(loss, 2), "dB",
+          "Received Power =", round(power, 2), "dBm")
+
