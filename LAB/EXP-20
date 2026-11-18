@@ -1,0 +1,66 @@
+
+import numpy as np
+
+def generate_walsh(size):
+    matrix = np.array([[1]])
+
+    while len(matrix) < size:
+        matrix = np.vstack((
+            np.hstack((matrix, matrix)),
+            np.hstack((matrix, -matrix))
+        ))
+
+    return matrix
+
+np.random.seed(11)
+
+N = 8
+users = 3
+nbits = 6
+
+H = generate_walsh(N)
+codes = H[:users]
+
+print("Walsh Codes:")
+print(codes)
+
+print("\nCorrelation Matrix:")
+print(np.dot(codes, codes.T) / N)
+
+data = np.random.choice([-1, 1], (users, nbits))
+
+print("\nTransmitted Bits:")
+print(data)
+
+spread = np.zeros((users, nbits * N))
+
+for i in range(users):
+    for j in range(nbits):
+        spread[i, j*N:(j+1)*N] = data[i, j] * codes[i]
+
+signal = np.sum(spread, axis=0)
+
+for noise in [0, 1, 2]:
+
+    received = signal + np.random.normal(0, noise, len(signal))
+
+    received = received.reshape(nbits, N)
+
+    output = np.zeros((users, nbits))
+
+    for i in range(users):
+        output[i] = np.sign(received @ codes[i] / N)
+
+    errors = np.sum(output != data)
+
+    print("\nNoise Level:", noise)
+    print("Bit Errors:", errors, "out of", users * nbits)
+
+print("\nOriginal User 1:", data[0])
+print("Decoded User 1:", output[0].astype(int))
+
+wrong = H[7]
+wrong_output = np.sign(received @ wrong / N)
+
+print("\nWrong Walsh Code Result:")
+print(wrong_output.astype(int))
