@@ -1,0 +1,62 @@
+
+import numpy as np
+
+np.random.seed(3)
+
+users = 5
+blocks = 50
+iterations = 3000
+
+distance = np.array([100, 200, 300, 400, 500])
+
+snr_db = 40 - 35 * np.log10(distance / 100)
+snr = 10 ** (snr_db / 10)
+
+def calculate_rate(x):
+    return np.minimum(np.log2(1 + x), 6) * 180
+
+def scheduling(method):
+    throughput = np.zeros(users)
+    average = np.ones(users)
+
+    for step in range(iterations):
+        fading = np.random.exponential(1, (users, blocks))
+        rates = calculate_rate(snr[:, None] * fading)
+
+        if method == "RR":
+            selected = (np.arange(blocks) + step) % users
+        elif method == "MAXCI":
+            selected = np.argmax(rates, axis=0)
+        else:
+            selected = np.argmax(rates / average[:, None], axis=0)
+
+        current = np.zeros(users)
+
+        for block in range(blocks):
+            user = selected[block]
+            current[user] += rates[user, block]
+
+        average = 0.99 * average + 0.01 * current
+        throughput += current
+
+    return throughput / iterations / 1000
+
+def fairness(values):
+    return (np.sum(values) ** 2) / (users * np.sum(values ** 2))
+
+print(f"{'Method':8}", end="")
+
+for i in range(users):
+    print(f"{'UE'+str(i+1):>9}", end="")
+
+print(f"{'Total':>10}{'Jain':>9}")
+
+for method in ["RR", "MAXCI", "PF"]:
+    result = scheduling(method)
+
+    print(f"{method:8}", end="")
+
+    for value in result:
+        print(f"{value:9.2f}", end="")
+
+    print(f"{result.sum():10.2f}{fairness(result):9.3f}")
